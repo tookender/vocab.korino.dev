@@ -229,8 +229,8 @@ export default function Page() {
           </div>
           {data.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center text-neutral-400">
-              <p className="text-base">No data loaded.</p>
-              <p className="text-sm">Paste your JSON above and click <span className="font-medium text-emerald-400">Load Data</span>.</p>
+              <p className="text-base">No data loaded</p>
+              <p className="text-sm">Click <span className="font-medium text-emerald-400">Open JSON</span> at the top</p>
             </div>
           ) : (
           <ul className="divide-y divide-white/5">
@@ -419,9 +419,9 @@ export default function Page() {
           onClick={closeJson}
         >
           <div
-            className={`relative h-screen w-full max-w-xl border-l border-white/10 bg-neutral-900 shadow-2xl transition-transform duration-300 ${
+            className={`relative w-full max-w-xl border-l border-white/10 bg-neutral-900 shadow-2xl transition-transform duration-300 ${
               jsonAnim ? "translate-x-0" : "translate-x-full"
-            }`}
+            } flex h-[100dvh] flex-col`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
@@ -438,7 +438,7 @@ export default function Page() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex h-[calc(100vh-56px)] flex-col gap-3 p-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
               <p className="text-xs text-neutral-400">
                 Provide an array of objects with keys &quot;fr&quot; and &quot;de&quot;.
               </p>
@@ -452,26 +452,26 @@ export default function Page() {
               {error && (
                 <p className="text-sm text-rose-400">{error}</p>
               )}
-              <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+              <div className="sticky bottom-0 -mx-4 mt-2 flex items-center justify-between gap-2 border-t border-white/10 bg-neutral-900/95 px-4 py-3">
                 <button
                   onClick={() => {
                     setError(null);
                     setJsonInput("");
                   }}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3.5 py-2 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99]"
                 >
                   Clear
                 </button>
                 <div className="flex gap-2">
                   <button
                     onClick={closeJson}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99]"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3.5 py-2 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99]"
                   >
                     Close
                   </button>
                   <button
                     onClick={onApplyJson}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,0.7)] transition-colors duration-200 hover:bg-emerald-700 active:scale-[.99]"
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,0.7)] transition-colors duration-200 hover:bg-emerald-700 active:scale-[.99]"
                   >
                     <Upload className="h-4 w-4" /> Load Data
                   </button>
