@@ -1,103 +1,486 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useMemo, useState } from "react";
+import { Check, X, Upload, RotateCcw, Trash2, EyeOff } from "lucide-react";
+
+type Vocab = { fr: string; de: string };
+type CoverColumn = "fr" | "de";
+type TapeState = "covered" | "semi";
+
+const LS_KEYS = {
+  data: "vocab-trainer:data",
+  answers: "vocab-trainer:answers",
+  cover: "vocab-trainer:cover",
+} as const;
+
+export default function Page() {
+  const [data, setData] = useState<Vocab[]>([]);
+  const [jsonInput, setJsonInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [cover, setCover] = useState<CoverColumn>("fr");
+  const [answers, setAnswers] = useState<Array<"known" | "unknown" | null>>(
+    []
+  );
+  const [tapeStates, setTapeStates] = useState<TapeState[]>([]);
+  // secret embed browser
+  const [browserOpen, setBrowserOpen] = useState(false);
+  const [browserInput, setBrowserInput] = useState("");
+  const [browserUrl, setBrowserUrl] = useState<string>("");
+  // json loader drawer animation
+  const [jsonVisible, setJsonVisible] = useState(false);
+  const [jsonAnim, setJsonAnim] = useState(false);
+
+  const openJson = () => {
+    setJsonVisible(true);
+    // start animation on next frame
+    requestAnimationFrame(() => setJsonAnim(true));
+  };
+
+  const closeJson = () => {
+    setJsonAnim(false);
+    // unmount after transition
+    setTimeout(() => setJsonVisible(false), 300);
+  };
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const lsData = localStorage.getItem(LS_KEYS.data);
+      const lsAnswers = localStorage.getItem(LS_KEYS.answers);
+      const lsCover = localStorage.getItem(LS_KEYS.cover) as CoverColumn | null;
+
+      if (lsData) {
+        const parsed = JSON.parse(lsData) as Vocab[];
+        setData(parsed);
+        setJsonInput(JSON.stringify(parsed, null, 2));
+        setTapeStates(parsed.map(() => "covered"));
+      } else {
+        setData([]);
+        setJsonInput("");
+        setTapeStates([]);
+      }
+
+      if (lsAnswers) setAnswers(JSON.parse(lsAnswers));
+      else setAnswers((lsData ? JSON.parse(lsData) : []).map(() => null));
+
+      if (lsCover === "fr" || lsCover === "de") setCover(lsCover);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LS_KEYS.data, JSON.stringify(data));
+  }, [data]);
+  useEffect(() => {
+    localStorage.setItem(LS_KEYS.answers, JSON.stringify(answers));
+  }, [answers]);
+  useEffect(() => {
+    localStorage.setItem(LS_KEYS.cover, cover);
+  }, [cover]);
+
+  // validate and apply the json data
+  const onApplyJson = () => {
+    setError(null);
+	// secret embedded browser
+    const trimmed = jsonInput.trim().toLowerCase();
+    if (trimmed === "secret website") {
+      setBrowserOpen(true);
+      setBrowserInput("");
+      setBrowserUrl("");
+      closeJson();
+      return;
+    }
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) throw new Error("JSON must be an array");
+      const normalized: Vocab[] = parsed.map((row, idx) => {
+        if (!row || typeof row !== "object")
+          throw new Error(`Row ${idx + 1} is not an object`);
+        if (typeof row.fr !== "string" || typeof row.de !== "string")
+          throw new Error(`Row ${idx + 1} must have 'fr' and 'de' strings`);
+        return { fr: row.fr, de: row.de };
+      });
+      setData(normalized);
+      setAnswers(normalized.map(() => null));
+      setTapeStates(normalized.map(() => "covered"));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Invalid JSON");
+    }
+  };
+
+  const clearAnswers = () => {
+    setAnswers(data.map(() => null));
+  };
+
+  const resetAll = () => {
+    if (
+      typeof window !== "undefined" &&
+      window.confirm("Reset all data and answers? This cannot be undone.")
+    ) {
+      localStorage.removeItem(LS_KEYS.data);
+      localStorage.removeItem(LS_KEYS.answers);
+      localStorage.removeItem(LS_KEYS.cover);
+      setData([]);
+      setJsonInput("");
+      setAnswers([]);
+      setCover("fr");
+      setTapeStates([]);
+    }
+  };
+
+  const cycleTape = (rowIdx: number) => {
+    setTapeStates((prev) => {
+      const next = [...prev];
+      const curr = next[rowIdx] ?? "covered";
+      next[rowIdx] = curr === "covered" ? "semi" : "covered";
+      return next;
+    });
+  };
+
+  const onChangeCover = (value: CoverColumn) => {
+    setCover(value);
+    // when switching column we reset the tape states to cover
+    setTapeStates(data.map(() => "covered"));
+  };
+
+  const knownCount = useMemo(
+    () => answers.filter((a) => a === "known").length,
+    [answers]
+  );
+  const unknownCount = useMemo(
+    () => answers.filter((a) => a === "unknown").length,
+    [answers]
+  );
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-dvh bg-neutral-900">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight">Vocabulary Trainer</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 p-1 text-sm shadow-sm backdrop-blur-md">
+              <button
+                className={`px-2.5 py-1 text-xs rounded-full transition-colors duration-200 ${
+                  cover === "fr"
+                    ? "bg-emerald-500 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)]"
+                    : "text-neutral-300 hover:text-white"
+                }`}
+                onClick={() => onChangeCover("fr")}
+                aria-pressed={cover === "fr"}
+              >
+                Cover: FR
+              </button>
+              <button
+                className={`px-2.5 py-1 text-xs rounded-full transition-colors duration-200 ${
+                  cover === "de"
+                    ? "bg-emerald-500 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)]"
+                    : "text-neutral-300 hover:text-white"
+                }`}
+                onClick={() => onChangeCover("de")}
+                aria-pressed={cover === "de"}
+              >
+                Cover: DE
+              </button>
+            </div>
+
+            <button
+              onClick={openJson}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99] backdrop-blur-md"
+              title="Open JSON loader"
+            >
+              <Upload className="h-4 w-4" /> Open JSON
+            </button>
+
+            <button
+              onClick={clearAnswers}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99] backdrop-blur-md"
+              title="Clear all answers"
+            >
+              <RotateCcw className="h-4 w-4" /> Clear answers
+            </button>
+
+            <button
+              onClick={resetAll}
+              className="inline-flex items-center gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-sm font-semibold text-red-300 shadow-sm transition-colors duration-200 hover:bg-red-400/20 active:scale-[.99] backdrop-blur-md"
+            >
+              <Trash2 className="h-4 w-4" /> Reset all
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        {/* Stats */}
+        <div className="mt-3 text-sm text-neutral-400">
+          <span className="mr-4">Total: {data.length}</span>
+          <span className="mr-4 text-emerald-400">Known: {knownCount}</span>
+          <span className="text-rose-400">Unknown: {unknownCount}</span>
+        </div>
+
+        {/* JSON Input Drawer Triggered Above */}
+
+        {/* Table */}
+        <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-md">
+          <div className="grid grid-cols-[1fr_1fr_auto] items-center border-b border-white/5 bg-white/5 px-4 py-3 text-sm font-semibold text-neutral-300">
+            <div>FR</div>
+            <div>DE</div>
+            <div className="text-center">Know</div>
+          </div>
+          {data.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center text-neutral-400">
+              <p className="text-base">No data loaded.</p>
+              <p className="text-sm">Paste your JSON above and click <span className="font-medium text-emerald-400">Load Data</span>.</p>
+            </div>
+          ) : (
+          <ul className="divide-y divide-white/5">
+            {data.map((row, idx) => {
+              const tape = (tapeStates[idx] as TapeState | undefined) ?? "covered";
+              const overlayOpacity = tape === "covered" ? 1 : 0.1; // never 0
+              const answer = answers[idx] ?? null;
+
+              return (
+                <li
+                  key={idx}
+                  className="grid grid-cols-[1fr_1fr_auto] items-stretch transition hover:bg-white/5"
+                  style={{ animation: `fadeSlideUp 320ms ease-out both`, animationDelay: `${idx * 18}ms` }}
+                >
+                  {/* FR cell */}
+                  <div className="relative px-4 py-3">
+                    <div className="relative z-10 whitespace-pre-wrap leading-relaxed">{row.fr}</div>
+                    <button
+                      onClick={() => cycleTape(idx)}
+                      title={tape === "covered" ? "Click to peek" : "Click to cover"}
+                      className="tape-overlay absolute z-20 rounded-md transition duration-300 hover:scale-[.995] cursor-pointer"
+                      style={{
+                        opacity: cover === "fr" ? overlayOpacity : 0,
+                        pointerEvents: cover === "fr" ? "auto" : "none",
+                        transform: cover === "fr" ? "translateX(0)" : "translateX(-12px)",
+                        top: 8, right: 8, bottom: 8, left: 8,
+                        background:
+                          "repeating-linear-gradient( -40deg, rgba(16,185,129,1), rgba(16,185,129,1) 10px, rgba(5,150,105,1) 10px, rgba(5,150,105,1) 20px )",
+                        boxShadow: "0 8px 24px -8px rgba(16,185,129,0.4)",
+                        border: "1px solid rgba(16,185,129,0.65)",
+                      }}
+                    >
+                      <span className="sr-only">Toggle tape</span>
+                      {((cover === "fr" ? overlayOpacity : 0) as number) > 0 && (
+                        <EyeOff className="pointer-events-none absolute right-2 top-2 h-4 w-4 text-emerald-50/80" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* DE cell */}
+                  <div className="relative px-4 py-3">
+                    <div className="relative z-10 whitespace-pre-wrap leading-relaxed">{row.de}</div>
+                    <button
+                      onClick={() => cycleTape(idx)}
+                      title={tape === "covered" ? "Click to peek" : "Click to cover"}
+                      className="tape-overlay absolute z-20 rounded-md transition duration-300 hover:scale-[.995] cursor-pointer"
+                      style={{
+                        opacity: cover === "de" ? overlayOpacity : 0,
+                        pointerEvents: cover === "de" ? "auto" : "none",
+                        transform: cover === "de" ? "translateX(0)" : "translateX(12px)",
+                        top: 8, right: 8, bottom: 8, left: 8,
+                        background:
+                          "repeating-linear-gradient( -40deg, rgba(16,185,129,1), rgba(16,185,129,1) 10px, rgba(5,150,105,1) 10px, rgba(5,150,105,1) 20px )",
+                        boxShadow: "0 8px 24px -8px rgba(16,185,129,0.4)",
+                        border: "1px solid rgba(16,185,129,0.65)",
+                      }}
+                    >
+                      <span className="sr-only">Toggle tape</span>
+                      {((cover === "de" ? overlayOpacity : 0) as number) > 0 && (
+                        <EyeOff className="pointer-events-none absolute right-2 top-2 h-4 w-4 text-emerald-50/80" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Know buttons */}
+                  <div className="flex items-center justify-center gap-2 px-3">
+                    <button
+                      onClick={() =>
+                        setAnswers((prev) => {
+                          const next = [...prev];
+                          next[idx] = prev[idx] === "known" ? null : "known";
+                          return next;
+                        })
+                      }
+                      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-emerald-300 transition-all duration-200 hover:bg-emerald-500/15 hover:shadow-[0_0_0_3px_rgba(16,185,129,0.18)] active:scale-95 ${
+                        answer === "known"
+                          ? "border-emerald-600/70 bg-emerald-900/40 shadow-[0_10px_20px_-10px_rgba(16,185,129,0.45)]"
+                          : "border-white/10"
+                      }`}
+                      aria-pressed={answer === "known"}
+                      title="Mark as known"
+                    >
+                      <Check className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() =>
+                        setAnswers((prev) => {
+                          const next = [...prev];
+                          next[idx] = prev[idx] === "unknown" ? null : "unknown";
+                          return next;
+                        })
+                      }
+                      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-rose-300 transition-all duration-200 hover:bg-rose-500/15 hover:shadow-[0_0_0_3px_rgba(244,63,94,0.18)] active:scale-95 ${
+                        answer === "unknown"
+                          ? "border-rose-600/70 bg-rose-900/40 shadow-[0_10px_20px_-10px_rgba(244,63,94,0.35)]"
+                          : "border-white/10"
+                      }`}
+                      aria-pressed={answer === "unknown"}
+                      title="Mark as unknown"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          )}
+        </section>
+      </div>
+
+      {/* Secret Browser Modal */}
+      {browserOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <div className="relative h-[90vh] w-[90vw] overflow-hidden rounded-2xl border border-white/10 bg-neutral-900/95 shadow-2xl">
+            {/* Top bar */}
+            <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-3">
+              <input
+                value={browserInput}
+                onChange={(e) => setBrowserInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const raw = browserInput.trim();
+                    if (!raw) return;
+                    const url = raw.match(/^https?:\/\//i) ? raw : `https://${raw}`;
+                    setBrowserUrl(url);
+                  }
+                }}
+                placeholder="Enter URL (e.g. example.com)"
+                className="flex-1 rounded-md border border-white/10 bg-white/10 px-3 py-2 text-sm text-neutral-100 outline-none ring-emerald-500/30 focus:ring-2"
+              />
+              <button
+                onClick={() => {
+                  const raw = browserInput.trim();
+                  if (!raw) return;
+                  const url = raw.match(/^https?:\/\//i) ? raw : `https://${raw}`;
+                  setBrowserUrl(url);
+                }}
+                className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 active:scale-[.98]"
+              >
+                Go
+              </button>
+              <button
+                onClick={() => {
+                  setBrowserUrl("");
+                  setBrowserInput("");
+                  setBrowserOpen(false);
+                }}
+                className="ml-2 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-white/10 text-neutral-300 transition-colors duration-200 hover:bg-white/20 active:scale-95"
+                aria-label="Close"
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Frame area */}
+            <div className="h-[calc(90vh-56px)] w-full">
+              {browserUrl ? (
+                <iframe
+                  src={browserUrl}
+                  className="h-full w-full"
+                  sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads allow-presentation allow-top-navigation-by-user-activation"
+                  allow="fullscreen; autoplay; clipboard-read; clipboard-write; geolocation; microphone; camera; gamepad; encrypted-media"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-neutral-400">
+                  Enter a URL above and hit Go
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JSON Loader Drawer */}
+      {jsonVisible && (
+        <div
+          className={`fixed inset-0 z-[90] flex items-stretch justify-end bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 ${
+            jsonAnim ? "opacity-100" : "opacity-0"
+          }`}
+          onClick={closeJson}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <div
+            className={`relative h-screen w-full max-w-xl border-l border-white/10 bg-neutral-900 shadow-2xl transition-transform duration-300 ${
+              jsonAnim ? "translate-x-0" : "translate-x-full"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
+              <h2 className="text-base font-medium">Paste JSON</h2>
+              <button
+                onClick={() => {
+                  setError(null);
+                  closeJson();
+                }}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-white/10 text-neutral-300 transition-colors duration-200 hover:bg-white/20 active:scale-95"
+                aria-label="Close"
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex h-[calc(100vh-56px)] flex-col gap-3 p-4">
+              <p className="text-xs text-neutral-400">
+                Provide an array of objects with keys &quot;fr&quot; and &quot;de&quot;.
+              </p>
+              <textarea
+                value={jsonInput}
+                onChange={(e) => setJsonInput(e.target.value)}
+                placeholder='[\n  { "fr": "bonjour", "de": "guten Tag" }\n]'
+                className="min-h-[12rem] flex-1 resize-y rounded-xl border border-white/10 bg-white/10 p-3 font-mono text-sm text-neutral-100 outline-none ring-emerald-500/30 transition focus:ring-2"
+                spellCheck={false}
+              />
+              {error && (
+                <p className="text-sm text-rose-400">{error}</p>
+              )}
+              <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setError(null);
+                    setJsonInput("");
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99]"
+                >
+                  Clear
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={closeJson}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99]"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={onApplyJson}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,0.7)] transition-colors duration-200 hover:bg-emerald-700 active:scale-[.99]"
+                  >
+                    <Upload className="h-4 w-4" /> Load Data
+                  </button>
+                </div>
+              </div>
+          </div>
+        </div>
+        </div>
+      )}
+    </main>
   );
 }
