@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, X, Upload, RotateCcw, Trash2, EyeOff, ArrowLeft, Eye } from "lucide-react";
+import { Check, X, Upload, RotateCcw, Trash2, EyeOff, ArrowLeft, Eye, Settings as SettingsIcon } from "lucide-react";
 
 type Vocab = { fr: string; de: string };
 type CoverColumn = "fr" | "de";
 type TapeState = "covered" | "semi";
+type TapeColorKey = "red" | "orange" | "yellow" | "green" | "blue" | "indigo" | "violet";
 
 const LS_KEYS = {
   data: "vocab-trainer:data",
   answers: "vocab-trainer:answers",
   cover: "vocab-trainer:cover",
+  settings: "vocab-trainer:settings",
 } as const;
 
 export default function Page() {
@@ -22,6 +24,20 @@ export default function Page() {
     []
   );
   const [tapeStates, setTapeStates] = useState<TapeState[]>([]);
+  // settings
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [settingsAnim, setSettingsAnim] = useState(false);
+  const [tapeColor, setTapeColor] = useState<TapeColorKey>("green");
+  const openSettings = () => {
+    setSettingsVisible(true);
+    requestAnimationFrame(() => setSettingsAnim(true));
+  };
+  const closeSettings = () => {
+    setSettingsAnim(false);
+    setTimeout(() => setSettingsVisible(false), 250);
+  };
+  const [tapeOpacityCovered, setTapeOpacityCovered] = useState<number>(1);
+  const [tapeOpacityPeek, setTapeOpacityPeek] = useState<number>(0.1);
   // secret embed browser (games)
   const [browserOpen, setBrowserOpen] = useState(false);
   const [browserUrl, setBrowserUrl] = useState<string>("");
@@ -48,6 +64,7 @@ export default function Page() {
       const lsData = localStorage.getItem(LS_KEYS.data);
       const lsAnswers = localStorage.getItem(LS_KEYS.answers);
       const lsCover = localStorage.getItem(LS_KEYS.cover) as CoverColumn | null;
+      const lsSettings = localStorage.getItem(LS_KEYS.settings);
 
       if (lsData) {
         const parsed = JSON.parse(lsData) as Vocab[];
@@ -64,6 +81,17 @@ export default function Page() {
       else setAnswers((lsData ? JSON.parse(lsData) : []).map(() => null));
 
       if (lsCover === "fr" || lsCover === "de") setCover(lsCover);
+
+      if (lsSettings) {
+        const s = JSON.parse(lsSettings) as {
+          tapeColor?: TapeColorKey;
+          tapeOpacityCovered?: number;
+          tapeOpacityPeek?: number;
+        };
+        if (s.tapeColor) setTapeColor(s.tapeColor);
+        if (typeof s.tapeOpacityCovered === "number") setTapeOpacityCovered(s.tapeOpacityCovered);
+        if (typeof s.tapeOpacityPeek === "number") setTapeOpacityPeek(s.tapeOpacityPeek);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -78,6 +106,54 @@ export default function Page() {
   useEffect(() => {
     localStorage.setItem(LS_KEYS.cover, cover);
   }, [cover]);
+
+  useEffect(() => {
+    const s = {
+      tapeColor,
+      tapeOpacityCovered,
+      tapeOpacityPeek,
+    };
+    localStorage.setItem(LS_KEYS.settings, JSON.stringify(s));
+  }, [tapeColor, tapeOpacityCovered, tapeOpacityPeek]);
+
+  // tape color palette definitions (RGB components)
+  const TAPE_COLORS: Record<
+    TapeColorKey,
+    { light: [number, number, number]; dark: [number, number, number] }
+  > = {
+    red: {
+      light: [239, 68, 68], // rose-500 like
+      dark: [190, 18, 60], // rose-700
+    },
+    orange: {
+      light: [249, 115, 22], // orange-500
+      dark: [194, 65, 12], // orange-700
+    },
+    yellow: {
+      light: [234, 179, 8], // yellow-500
+      dark: [161, 98, 7], // yellow-700
+    },
+    green: {
+      light: [16, 185, 129], // emerald-500
+      dark: [5, 150, 105], // emerald-600
+    },
+    blue: {
+      light: [59, 130, 246], // blue-500
+      dark: [29, 78, 216], // blue-700
+    },
+    indigo: {
+      light: [99, 102, 241], // indigo-500
+      dark: [67, 56, 202], // indigo-700
+    },
+    violet: {
+      light: [139, 92, 246], // violet-500
+      dark: [109, 40, 217], // violet-700
+    },
+  };
+
+  const colorPair = TAPE_COLORS[tapeColor];
+  const rgba = (rgb: [number, number, number], a = 1) => `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${a})`;
+  const rgbStr = (rgb: [number, number, number]) => `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
 
   // validate and apply the json data
   const onApplyJson = () => {
@@ -168,23 +244,35 @@ export default function Page() {
             <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 p-1 text-sm shadow-sm backdrop-blur-md">
               <button
                 className={`px-2.5 py-1 text-xs rounded-full transition-colors duration-200 ${
-                  cover === "fr"
-                    ? "bg-emerald-500 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)]"
-                    : "text-neutral-300 hover:text-white"
+                  cover === "fr" ? "text-white" : "text-neutral-300 hover:text-white"
                 }`}
                 onClick={() => onChangeCover("fr")}
                 aria-pressed={cover === "fr"}
+                style={
+                  cover === "fr"
+                    ? {
+                        backgroundColor: rgbStr(colorPair.light),
+                        boxShadow: `0 4px 14px ${rgba(colorPair.light, 0.35)}`,
+                      }
+                    : undefined
+                }
               >
                 Cover: FR
               </button>
               <button
                 className={`px-2.5 py-1 text-xs rounded-full transition-colors duration-200 ${
-                  cover === "de"
-                    ? "bg-emerald-500 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)]"
-                    : "text-neutral-300 hover:text-white"
+                  cover === "de" ? "text-white" : "text-neutral-300 hover:text-white"
                 }`}
                 onClick={() => onChangeCover("de")}
                 aria-pressed={cover === "de"}
+                style={
+                  cover === "de"
+                    ? {
+                        backgroundColor: rgbStr(colorPair.light),
+                        boxShadow: `0 4px 14px ${rgba(colorPair.light, 0.35)}`,
+                      }
+                    : undefined
+                }
               >
                 Cover: DE
               </button>
@@ -211,6 +299,14 @@ export default function Page() {
               className="inline-flex items-center gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-sm font-semibold text-red-300 shadow-sm transition-colors duration-200 hover:bg-red-400/20 active:scale-[.99] backdrop-blur-md"
             >
               <Trash2 className="h-4 w-4" /> Reset all
+            </button>
+
+            <button
+              onClick={openSettings}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99] backdrop-blur-md"
+              title="Settings"
+            >
+              <SettingsIcon className="h-4 w-4" /> Settings
             </button>
           </div>
         </div>
@@ -256,7 +352,7 @@ export default function Page() {
           <ul className="divide-y divide-white/5">
             {data.map((row, idx) => {
               const tape = (tapeStates[idx] as TapeState | undefined) ?? "covered";
-              const overlayOpacity = tape === "covered" ? 1 : 0.1; // never 0
+              const overlayOpacity = tape === "covered" ? tapeOpacityCovered : tapeOpacityPeek;
               const answer = answers[idx] ?? null;
 
               return (
@@ -277,10 +373,9 @@ export default function Page() {
                         pointerEvents: cover === "fr" ? "auto" : "none",
                         transform: cover === "fr" ? "translateX(0)" : "translateX(-12px)",
                         top: 8, right: 8, bottom: 8, left: 8,
-                        background:
-                          "repeating-linear-gradient( -40deg, rgba(16,185,129,1), rgba(16,185,129,1) 10px, rgba(5,150,105,1) 10px, rgba(5,150,105,1) 20px )",
-                        boxShadow: "0 8px 24px -8px rgba(16,185,129,0.4)",
-                        border: "1px solid rgba(16,185,129,0.65)",
+                        background: `repeating-linear-gradient(-40deg, ${rgba(colorPair.light)}, ${rgba(colorPair.light)} 10px, ${rgba(colorPair.dark)} 10px, ${rgba(colorPair.dark)} 20px)`,
+                        boxShadow: `0 8px 24px -8px ${rgba(colorPair.light, 0.4)}`,
+                        border: `1px solid ${rgba(colorPair.light, 0.65)}`,
                       }}
                     >
                       <span className="sr-only">Toggle tape</span>
@@ -302,10 +397,9 @@ export default function Page() {
                         pointerEvents: cover === "de" ? "auto" : "none",
                         transform: cover === "de" ? "translateX(0)" : "translateX(12px)",
                         top: 8, right: 8, bottom: 8, left: 8,
-                        background:
-                          "repeating-linear-gradient( -40deg, rgba(16,185,129,1), rgba(16,185,129,1) 10px, rgba(5,150,105,1) 10px, rgba(5,150,105,1) 20px )",
-                        boxShadow: "0 8px 24px -8px rgba(16,185,129,0.4)",
-                        border: "1px solid rgba(16,185,129,0.65)",
+                        background: `repeating-linear-gradient(-40deg, ${rgba(colorPair.light)}, ${rgba(colorPair.light)} 10px, ${rgba(colorPair.dark)} 10px, ${rgba(colorPair.dark)} 20px)`,
+                        boxShadow: `0 8px 24px -8px ${rgba(colorPair.light, 0.4)}`,
+                        border: `1px solid ${rgba(colorPair.light, 0.65)}`,
                       }}
                     >
                       <span className="sr-only">Toggle tape</span>
@@ -511,7 +605,11 @@ export default function Page() {
                   </button>
                   <button
                     onClick={onApplyJson}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,0.7)] transition-colors duration-200 hover:bg-emerald-700 active:scale-[.99]"
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:brightness-110 active:scale-[.99]"
+                    style={{
+                      backgroundColor: rgbStr(colorPair.light),
+                      boxShadow: `0 10px 24px -10px ${rgba(colorPair.light, 0.7)}`,
+                    }}
                   >
                     <Upload className="h-4 w-4" /> Load Data
                   </button>
@@ -519,6 +617,151 @@ export default function Page() {
               </div>
           </div>
         </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {settingsVisible && (
+        <div
+          className={`fixed inset-0 z-[95] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
+            settingsAnim ? "opacity-100" : "opacity-0"
+          }`}
+          role="dialog"
+          aria-modal="true"
+          onClick={closeSettings}
+        >
+          <div
+            className={`w-full max-w-xl rounded-2xl border border-white/10 bg-neutral-900/95 shadow-2xl transition-all duration-300 ${
+              settingsAnim ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-1"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
+              <h3 className="text-base font-medium">Settings</h3>
+              <button
+                onClick={closeSettings}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-white/10 text-neutral-300 transition-colors duration-200 hover:bg-white/20 active:scale-95"
+                aria-label="Close"
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="max-h-[70vh] overflow-y-auto p-4">
+              {/* Tape Color */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-200">Theme color</label>
+                <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-7">
+                  {([
+                    { key: "red", color: "#ef4444" },
+                    { key: "orange", color: "#f97316" },
+                    { key: "yellow", color: "#eab308" },
+                    { key: "green", color: "#10b981" },
+                    { key: "blue", color: "#3b82f6" },
+                    { key: "indigo", color: "#6366f1" },
+                    { key: "violet", color: "#8b5cf6" },
+                  ] as Array<{ key: TapeColorKey; color: string }>).map((c) => (
+                    <button
+                      key={c.key}
+                      onClick={() => setTapeColor(c.key)}
+                      aria-label={c.key}
+                      className={`flex items-center justify-center rounded-lg border p-3 transition ${
+                        tapeColor === c.key
+                          ? "border-white/30 bg-white/15"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                      title={c.key}
+                    >
+                      <span className="sr-only capitalize">{c.key}</span>
+                      <span
+                        className="inline-block h-3 w-3 rounded-full shrink-0 ring-1 ring-white/30"
+                        style={{ backgroundColor: c.color }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Opacity sliders */}
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-neutral-200">
+                    Covered opacity
+                    <span className="ml-2 text-neutral-400">{Math.round(tapeOpacityCovered * 100)}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={Math.round(tapeOpacityCovered * 100)}
+                    onChange={(e) => {
+                      const raw = Number(e.target.value);
+                      const v = Math.min(100, Math.max(0, Math.ceil(raw / 5) * 5));
+                      setTapeOpacityCovered(v / 100);
+                    }}
+                    className="w-full range-dark"
+                    style={{
+                      background: `linear-gradient(${rgbStr(colorPair.light)}, ${rgbStr(colorPair.light)}) left center / ${Math.round(
+                        tapeOpacityCovered * 100
+                      )}% 6px no-repeat, linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)) left center / 100% 6px no-repeat`,
+                      color: rgbStr(colorPair.light),
+                      accentColor: rgbStr(colorPair.light),
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-neutral-200">
+                    Peek opacity
+                    <span className="ml-2 text-neutral-400">{Math.round(tapeOpacityPeek * 100)}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={Math.round(tapeOpacityPeek * 100)}
+                    onChange={(e) => {
+                      const raw = Number(e.target.value);
+                      const v = Math.min(100, Math.max(0, Math.ceil(raw / 5) * 5));
+                      setTapeOpacityPeek(v / 100);
+                    }}
+                    className="w-full range-dark"
+                    style={{
+                      background: `linear-gradient(${rgbStr(colorPair.light)}, ${rgbStr(colorPair.light)}) left center / ${Math.round(
+                        tapeOpacityPeek * 100
+                      )}% 6px no-repeat, linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)) left center / 100% 6px no-repeat`,
+                      color: rgbStr(colorPair.light),
+                      accentColor: rgbStr(colorPair.light),
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setTapeColor("green");
+                    setTapeOpacityCovered(1);
+                    setTapeOpacityPeek(0.1);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3.5 py-2 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99]"
+                >
+                  Reset to defaults
+                </button>
+                <button
+                  onClick={closeSettings}
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:brightness-110 active:scale-[.99]"
+                  style={{
+                    backgroundColor: rgbStr(colorPair.light),
+                    boxShadow: `0 10px 24px -10px ${rgba(colorPair.light, 0.7)}`,
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </main>

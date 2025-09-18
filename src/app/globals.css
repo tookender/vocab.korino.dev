@@ -11,6 +11,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Always show pointer on buttons */
+button { cursor: pointer; }
+
 .tape-overlay {
   background:
     linear-gradient(
@@ -31,4 +34,57 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Dark theme range slider */
+.range-dark {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1.25rem; /* for vertical centering */
+  /* neutral full track; themed fill applied inline per element */
+  background: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)) left center / 100% 6px no-repeat;
+  border-radius: 9999px;
+}
+.range-dark:focus {
+  outline: none;
+}
+.range-dark::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent; /* show the input background for dual-color effect */
+  border-radius: 9999px;
+}
+.range-dark::-moz-range-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+}
+.range-dark::-moz-range-progress {
+  height: 6px;
+  background: currentColor;
+  border-radius: 9999px;
+}
+.range-dark::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px; /* center thumb on 6px track (thumb 18px) */
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: currentColor;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+.range-dark::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: currentColor;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+.range-dark:active::-webkit-slider-thumb {
+  transform: scale(0.96);
+}
+.range-dark:active::-moz-range-thumb {
+  transform: scale(0.96);
 }
