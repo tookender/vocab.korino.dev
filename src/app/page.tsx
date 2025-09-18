@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, X, Upload, RotateCcw, Trash2, EyeOff, ArrowLeft } from "lucide-react";
+import { Check, X, Upload, RotateCcw, Trash2, EyeOff, ArrowLeft, Eye } from "lucide-react";
 
 type Vocab = { fr: string; de: string };
 type CoverColumn = "fr" | "de";
@@ -153,6 +153,10 @@ export default function Page() {
     [answers]
   );
 
+  // Global tape controls
+  const coverAllTapes = () => setTapeStates(data.map(() => "covered" as TapeState));
+  const uncoverAllTapes = () => setTapeStates(data.map(() => "semi" as TapeState));
+
   return (
     <main className="min-h-dvh bg-neutral-900">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -212,10 +216,26 @@ export default function Page() {
         </div>
 
         {/* Stats */}
-        <div className="mt-3 text-sm text-neutral-400">
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-neutral-400">
           <span className="mr-4">Total: {data.length}</span>
           <span className="mr-4 text-emerald-400">Known: {knownCount}</span>
           <span className="text-rose-400">Unknown: {unknownCount}</span>
+          <div className="ml-2 inline-flex items-center gap-2">
+            <button
+              onClick={uncoverAllTapes}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99] backdrop-blur-md"
+              title="Uncover all tape (peek)"
+           >
+              <Eye className="h-3.5 w-3.5" /> Uncover all
+            </button>
+            <button
+              onClick={coverAllTapes}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99] backdrop-blur-md"
+              title="Cover all tape"
+            >
+              <EyeOff className="h-3.5 w-3.5" /> Cover all
+            </button>
+          </div>
         </div>
 
         {/* JSON Input Drawer Triggered Above */}
