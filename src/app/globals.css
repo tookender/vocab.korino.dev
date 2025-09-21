@@ -8,20 +8,20 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Always show pointer on buttons */
-button { cursor: pointer; }
+/* i honestly have no clue why this is needed but buttons dont have cursor pointer by default for some reason */
+button {
+  cursor: pointer;
+}
 
 .tape-overlay {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(16,185,129,0.9) 0%,
-      rgba(5,150,105,0.9) 100%
-    );
-  box-shadow: 0 8px 24px -8px rgba(16,185,129,0.4);
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.9) 0%,
+    rgba(5, 150, 105, 0.9) 100%
+  );
+  box-shadow: 0 8px 24px -8px rgba(16, 185, 129, 0.4);
   overflow: hidden;
 }
 
@@ -36,37 +36,43 @@ button { cursor: pointer; }
   }
 }
 
-/* Dark theme range slider */
 .range-dark {
   -webkit-appearance: none;
   appearance: none;
-  height: 1.25rem; /* for vertical centering */
-  /* neutral full track; themed fill applied inline per element */
-  background: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)) left center / 100% 6px no-repeat;
+  height: 1.25rem;
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.08)
+    )
+    left center / 100% 6px no-repeat;
   border-radius: 9999px;
 }
 .range-dark:focus {
   outline: none;
 }
+
 .range-dark::-webkit-slider-runnable-track {
   height: 6px;
-  background: transparent; /* show the input background for dual-color effect */
+  background: transparent;
   border-radius: 9999px;
 }
+
 .range-dark::-moz-range-track {
   height: 6px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 9999px;
 }
+
 .range-dark::-moz-range-progress {
   height: 6px;
   background: currentColor;
   border-radius: 9999px;
 }
+
 .range-dark::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  margin-top: -6px; /* center thumb on 6px track (thumb 18px) */
+  margin-top: -6px;
   height: 18px;
   width: 18px;
   border-radius: 9999px;
@@ -74,6 +80,7 @@ button { cursor: pointer; }
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
+
 .range-dark::-moz-range-thumb {
   height: 18px;
   width: 18px;
@@ -82,9 +89,11 @@ button { cursor: pointer; }
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
+
 .range-dark:active::-webkit-slider-thumb {
   transform: scale(0.96);
 }
+
 .range-dark:active::-moz-range-thumb {
   transform: scale(0.96);
 }
