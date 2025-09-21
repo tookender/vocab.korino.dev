@@ -5,6 +5,7 @@ import type {
   Settings,
   TapeState,
   TapeColorKey,
+  ThemeMode,
 } from "./types";
 import { LS_KEYS } from "./constants";
 
@@ -58,9 +59,9 @@ export function knownUnknownCounts(answers: Answer[]) {
 }
 
 export function getDefaultSettings(): Required<
-  Pick<Settings, "tapeOpacityCovered" | "tapeOpacityPeek" | "tapeColor">
+  Pick<Settings, "tapeOpacityCovered" | "tapeOpacityPeek" | "tapeColor" | "theme">
 > {
-  return { tapeColor: "green", tapeOpacityCovered: 1, tapeOpacityPeek: 0.1 };
+  return { tapeColor: "green", tapeOpacityCovered: 1, tapeOpacityPeek: 0.1, theme: "dark" };
 }
 
 export function sanitizeOpacity(value: number) {
@@ -97,3 +98,9 @@ export function uncoverAll(len: number): TapeState[] {
 }
 
 export { LS_KEYS };
+
+export function applyTheme(theme: ThemeMode) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.setAttribute("data-theme", theme);
+}

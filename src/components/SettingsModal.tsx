@@ -1,7 +1,7 @@
 "use client";
 
-import { X } from "lucide-react";
-import type { TapeColorKey } from "@/lib/types";
+import { X, Sun, Moon } from "lucide-react";
+import type { TapeColorKey, ThemeMode } from "@/lib/types";
 import { rgba, rgbStr, TAPE_COLORS } from "@/lib/constants";
 
 type Props = {
@@ -13,6 +13,8 @@ type Props = {
   setTapeOpacityCovered: (v: number) => void;
   tapeOpacityPeek: number;
   setTapeOpacityPeek: (v: number) => void;
+  theme: ThemeMode;
+  setTheme: (t: ThemeMode) => void;
   onClose: () => void;
 };
 
@@ -25,6 +27,8 @@ export default function SettingsModal({
   setTapeOpacityCovered,
   tapeOpacityPeek,
   setTapeOpacityPeek,
+  theme,
+  setTheme,
   onClose,
 }: Props) {
   if (!open) return null;
@@ -58,6 +62,34 @@ export default function SettingsModal({
           </button>
         </div>
         <div className="max-h-[70vh] overflow-y-auto p-4">
+          {/* Light/Dark mode */}
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-neutral-200">Light/Dark mode</label>
+            <div className="mt-2 flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="flex items-center gap-2 text-sm text-neutral-300">
+                {theme === "light" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+                <span className="capitalize">{theme}</span>
+              </div>
+              <button
+                role="switch"
+                aria-checked={theme === "dark"}
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                className="relative inline-flex h-7 w-12 items-center rounded-full border border-white/10 bg-white/10 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-white/30"
+                title="Toggle theme"
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    theme === "dark" ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
           {/* Tape colors */}
           <div>
             <label className="block text-sm font-medium text-neutral-200">Theme color</label>

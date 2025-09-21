@@ -1,6 +1,7 @@
 export type Vocab = { fr: string; de: string };
 export type CoverColumn = "fr" | "de";
 export type TapeState = "covered" | "semi";
+export type ThemeMode = "light" | "dark";
 export type TapeColorKey =
   | "red"
   | "orange"
@@ -16,4 +17,5 @@ export type Settings = {
   tapeColor?: TapeColorKey;
   tapeOpacityCovered?: number;
   tapeOpacityPeek?: number;
+  theme?: ThemeMode;
 };

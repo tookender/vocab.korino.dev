@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Vocab, CoverColumn, TapeState, TapeColorKey, Answer } from "@/lib/types";
+import type { Vocab, CoverColumn, TapeState, TapeColorKey, Answer, ThemeMode } from "@/lib/types";
 import { LS_KEYS, TAPE_COLORS } from "@/lib/constants";
 import {
   parseVocabJson,
@@ -21,6 +21,7 @@ import VocabTable from "@/components/VocabTable";
 import JsonLoaderDrawer from "@/components/JsonLoaderDrawer";
 import SettingsModal from "@/components/SettingsModal";
 import SecretBrowserModal from "@/components/SecretBrowserModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function Page() {
   const [data, setData] = useState<Vocab[]>([]);
@@ -43,12 +44,17 @@ export default function Page() {
   };
   const [tapeOpacityCovered, setTapeOpacityCovered] = useState<number>(1);
   const [tapeOpacityPeek, setTapeOpacityPeek] = useState<number>(0.1);
+  const [theme, setTheme] = useState<ThemeMode>("dark");
   // secret embed browser (games)
   const [browserOpen, setBrowserOpen] = useState(false);
   // moved to SecretBrowserModal internal state
   // json loader drawer animation
   const [jsonVisible, setJsonVisible] = useState(false);
   const [jsonAnim, setJsonAnim] = useState(false);
+
+  // confirm reset modal
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmAnim, setConfirmAnim] = useState(false);
 
   const openJson = () => {
     setJsonVisible(true);
@@ -68,7 +74,7 @@ export default function Page() {
       const lsData = localStorage.getItem(LS_KEYS.data);
       const lsAnswers = localStorage.getItem(LS_KEYS.answers);
       const lsCover = localStorage.getItem(LS_KEYS.cover);
-      const lsSettings = localStorage.getItem(LS_KEYS.settings);
+  const lsSettings = localStorage.getItem(LS_KEYS.settings);
 
       if (lsData) {
         const parsed = JSON.parse(lsData) as Vocab[];
@@ -91,10 +97,12 @@ export default function Page() {
           tapeColor: TapeColorKey;
           tapeOpacityCovered: number;
           tapeOpacityPeek: number;
+          theme: ThemeMode;
         }>;
         if (s.tapeColor) setTapeColor(s.tapeColor);
         if (typeof s.tapeOpacityCovered === "number") setTapeOpacityCovered(s.tapeOpacityCovered);
         if (typeof s.tapeOpacityPeek === "number") setTapeOpacityPeek(s.tapeOpacityPeek);
+        if (s.theme === "light" || s.theme === "dark") setTheme(s.theme);
       }
     } catch (e) {
       console.error(e);
@@ -116,9 +124,15 @@ export default function Page() {
       tapeColor,
       tapeOpacityCovered,
       tapeOpacityPeek,
+      theme,
     };
     localStorage.setItem(LS_KEYS.settings, JSON.stringify(s));
-  }, [tapeColor, tapeOpacityCovered, tapeOpacityPeek]);
+  }, [tapeColor, tapeOpacityCovered, tapeOpacityPeek, theme]);
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   const colorPair = TAPE_COLORS[tapeColor];
 
@@ -145,20 +159,25 @@ export default function Page() {
     setAnswers(data.map(() => null));
   };
 
+  const openConfirm = () => {
+    setConfirmVisible(true);
+    requestAnimationFrame(() => setConfirmAnim(true));
+  };
+
+  const closeConfirm = () => {
+    setConfirmAnim(false);
+    setTimeout(() => setConfirmVisible(false), 250);
+  };
+
   const resetAll = () => {
-    if (
-      typeof window !== "undefined" &&
-      window.confirm("Reset all data and answers? This cannot be undone.")
-    ) {
-      localStorage.removeItem(LS_KEYS.data);
-      localStorage.removeItem(LS_KEYS.answers);
-      localStorage.removeItem(LS_KEYS.cover);
-      setData([]);
-      setJsonInput("");
-      setAnswers([]);
-      setCover("fr");
-      setTapeStates([]);
-    }
+    localStorage.removeItem(LS_KEYS.data);
+    localStorage.removeItem(LS_KEYS.answers);
+    localStorage.removeItem(LS_KEYS.cover);
+    setData([]);
+    setJsonInput("");
+    setAnswers([]);
+    setCover("fr");
+    setTapeStates([]);
   };
 
   const cycleTape = (rowIdx: number) => {
@@ -182,14 +201,14 @@ export default function Page() {
   const uncoverAllTapes = () => setTapeStates(uncoverAll(data.length));
 
   return (
-    <main className="min-h-dvh bg-neutral-900">
+  <main className="min-h-dvh">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <HeaderBar
           cover={cover}
           onChangeCover={onChangeCover}
           onOpenJson={openJson}
           onClearAnswers={clearAnswers}
-          onResetAll={resetAll}
+          onResetAll={openConfirm}
           onOpenSettings={openSettings}
           tapeColor={tapeColor}
         />
@@ -217,6 +236,20 @@ export default function Page() {
 
       <SecretBrowserModal open={browserOpen} onClose={() => setBrowserOpen(false)} />
 
+      <ConfirmModal
+        open={confirmVisible}
+        anim={confirmAnim}
+        title="Reset all data?"
+        description="This will clear loaded JSON, answers, and cover settings. This action cannot be undone."
+        confirmText="Reset"
+        cancelText="Cancel"
+        onConfirm={() => {
+          resetAll();
+          closeConfirm();
+        }}
+        onCancel={closeConfirm}
+      />
+
       <JsonLoaderDrawer
         open={jsonVisible}
         anim={jsonAnim}
@@ -238,6 +271,8 @@ export default function Page() {
         setTapeOpacityCovered={(v) => setTapeOpacityCovered(sanitizeOpacity(v * 100))}
         tapeOpacityPeek={tapeOpacityPeek}
         setTapeOpacityPeek={(v) => setTapeOpacityPeek(sanitizeOpacity(v * 100))}
+        theme={theme}
+        setTheme={setTheme}
         onClose={closeSettings}
       />
     </main>
