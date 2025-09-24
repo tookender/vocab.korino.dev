@@ -45,6 +45,9 @@ export default function Page() {
   const [tapeOpacityCovered, setTapeOpacityCovered] = useState<number>(1);
   const [tapeOpacityPeek, setTapeOpacityPeek] = useState<number>(0.1);
   const [theme, setTheme] = useState<ThemeMode>("dark");
+  // dynamic keys selection
+  const [leftKey, setLeftKey] = useState<string>("fr");
+  const [rightKey, setRightKey] = useState<string>("de");
   // secret embed browser (games)
   const [browserOpen, setBrowserOpen] = useState(false);
   // moved to SecretBrowserModal internal state
@@ -72,9 +75,9 @@ export default function Page() {
   useEffect(() => {
     try {
       const lsData = localStorage.getItem(LS_KEYS.data);
-      const lsAnswers = localStorage.getItem(LS_KEYS.answers);
-      const lsCover = localStorage.getItem(LS_KEYS.cover);
-  const lsSettings = localStorage.getItem(LS_KEYS.settings);
+    const lsAnswers = localStorage.getItem(LS_KEYS.answers);
+    const lsCover = localStorage.getItem(LS_KEYS.cover);
+    const lsSettings = localStorage.getItem(LS_KEYS.settings);
 
       if (lsData) {
         const parsed = JSON.parse(lsData) as Vocab[];
@@ -90,7 +93,7 @@ export default function Page() {
       if (lsAnswers) setAnswers(JSON.parse(lsAnswers) as Answer[]);
       else setAnswers((lsData ? (JSON.parse(lsData) as Vocab[]) : []).map(() => null));
 
-      if (isCoverColumn(lsCover)) setCover(lsCover);
+  if (isCoverColumn(lsCover)) setCover(lsCover);
 
       if (lsSettings) {
         const s = JSON.parse(lsSettings) as ReturnType<typeof getDefaultSettings> & Partial<{
@@ -98,11 +101,15 @@ export default function Page() {
           tapeOpacityCovered: number;
           tapeOpacityPeek: number;
           theme: ThemeMode;
+          leftKey: string;
+          rightKey: string;
         }>;
         if (s.tapeColor) setTapeColor(s.tapeColor);
         if (typeof s.tapeOpacityCovered === "number") setTapeOpacityCovered(s.tapeOpacityCovered);
         if (typeof s.tapeOpacityPeek === "number") setTapeOpacityPeek(s.tapeOpacityPeek);
         if (s.theme === "light" || s.theme === "dark") setTheme(s.theme);
+        if (typeof s.leftKey === "string") setLeftKey(s.leftKey);
+        if (typeof s.rightKey === "string") setRightKey(s.rightKey);
       }
     } catch (e) {
       console.error(e);
@@ -125,9 +132,11 @@ export default function Page() {
       tapeOpacityCovered,
       tapeOpacityPeek,
       theme,
+      leftKey,
+      rightKey,
     };
     localStorage.setItem(LS_KEYS.settings, JSON.stringify(s));
-  }, [tapeColor, tapeOpacityCovered, tapeOpacityPeek, theme]);
+  }, [tapeColor, tapeOpacityCovered, tapeOpacityPeek, theme, leftKey, rightKey]);
 
   // Apply theme to document
   useEffect(() => {
@@ -135,6 +144,27 @@ export default function Page() {
   }, [theme]);
 
   const colorPair = TAPE_COLORS[tapeColor];
+  const availableKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of data) for (const k of Object.keys(r)) set.add(k);
+    return Array.from(set);
+  }, [data]);
+
+  // ensure left/right keys are valid and different
+  useEffect(() => {
+    if (availableKeys.length === 0) return;
+    if (!availableKeys.includes(leftKey)) setLeftKey(availableKeys[0]);
+    if (!availableKeys.includes(rightKey)) {
+      const fallback = availableKeys.find((k) => k !== leftKey) ?? availableKeys[0];
+      setRightKey(fallback);
+    }
+    if (leftKey === rightKey) {
+      const alt = availableKeys.find((k) => k !== leftKey);
+      if (alt) setRightKey(alt);
+    }
+    // ensure cover is one of the two active keys
+    if (cover !== leftKey && cover !== rightKey) setCover(leftKey);
+  }, [availableKeys, leftKey, rightKey, cover]);
 
   // validate and apply the json data
   const onApplyJson = () => {
@@ -188,8 +218,9 @@ export default function Page() {
     });
   };
 
-  const onChangeCover = (value: CoverColumn) => {
-    setCover(value);
+  const onSwitchTapes = () => {
+    // toggle cover between the two current keys
+    setCover((prev) => (prev === leftKey ? rightKey : leftKey));
     // when switching column we reset the tape states to cover
     setTapeStates(data.map(() => "covered"));
   };
@@ -199,31 +230,36 @@ export default function Page() {
 
   const coverAllTapes = () => setTapeStates(coverAll(data.length));
   const uncoverAllTapes = () => setTapeStates(uncoverAll(data.length));
+  const allCovered = useMemo(() => tapeStates.every((t) => (t ?? "covered") === "covered"), [tapeStates]);
+  const onToggleCoverAll = () => {
+    if (allCovered) uncoverAllTapes();
+    else coverAllTapes();
+  };
 
   return (
   <main className="min-h-dvh">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <HeaderBar
-          cover={cover}
-          onChangeCover={onChangeCover}
           onOpenJson={openJson}
           onClearAnswers={clearAnswers}
           onResetAll={openConfirm}
           onOpenSettings={openSettings}
-          tapeColor={tapeColor}
+          onSwitchTapes={onSwitchTapes}
         />
 
         <StatsBar
           total={data.length}
           known={knownCount}
           unknown={unknownCount}
-          onUncoverAll={uncoverAllTapes}
-          onCoverAll={coverAllTapes}
+          allCovered={allCovered}
+          onToggleCoverAll={onToggleCoverAll}
         />
 
         <VocabTable
           data={data}
           cover={cover}
+          leftKey={leftKey}
+          rightKey={rightKey}
           answers={answers}
           setAnswers={setAnswers}
           tapeStates={tapeStates}

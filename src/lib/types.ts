@@ -1,5 +1,6 @@
-export type Vocab = { fr: string; de: string };
-export type CoverColumn = "fr" | "de";
+// A vocab row can have arbitrary language keys, each mapped to a string.
+export type Vocab = Record<string, string>;
+export type CoverColumn = string;
 export type TapeState = "covered" | "semi";
 export type ThemeMode = "light" | "dark";
 export type TapeColorKey =
@@ -18,4 +19,6 @@ export type Settings = {
   tapeOpacityCovered?: number;
   tapeOpacityPeek?: number;
   theme?: ThemeMode;
+  leftKey?: string;
+  rightKey?: string;
 };

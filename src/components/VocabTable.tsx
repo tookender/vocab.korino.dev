@@ -7,6 +7,8 @@ import { rgba } from "@/lib/constants";
 type Props = {
   data: Vocab[];
   cover: CoverColumn;
+  leftKey: string;
+  rightKey: string;
   answers: Answer[];
   setAnswers: (updater: (prev: Answer[]) => Answer[]) => void;
   tapeStates: TapeState[];
@@ -19,6 +21,8 @@ type Props = {
 export default function VocabTable({
   data,
   cover,
+  leftKey,
+  rightKey,
   answers,
   setAnswers,
   tapeStates,
@@ -27,11 +31,14 @@ export default function VocabTable({
   tapeOpacityCovered,
   tapeOpacityPeek,
 }: Props) {
+  const leftLabel = (leftKey || "").toUpperCase();
+  const rightLabel = (rightKey || "").toUpperCase();
+
   return (
     <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-md">
       <div className="grid grid-cols-[1fr_1fr_auto] items-center border-b border-white/5 bg-white/5 px-4 py-3 text-sm font-semibold text-neutral-300">
-        <div>FR</div>
-        <div>DE</div>
+        <div>{leftLabel}</div>
+        <div>{rightLabel}</div>
         <div className="text-center">Know</div>
       </div>
       {data.length === 0 ? (
@@ -54,17 +61,17 @@ export default function VocabTable({
                 className="grid grid-cols-[1fr_1fr_auto] items-stretch transition hover:bg-white/5"
                 style={{ animation: `fadeSlideUp 320ms ease-out both`, animationDelay: `${idx * 18}ms` }}
               >
-                {/* FR cell */}
+                {/* Left cell */}
                 <div className="relative px-4 py-3">
-                  <div className="relative z-10 whitespace-pre-wrap leading-relaxed">{row.fr}</div>
+                  <div className="relative z-10 whitespace-pre-wrap leading-relaxed">{row[leftKey] ?? ""}</div>
                   <button
                     onClick={() => onCycleTape(idx)}
                     title={tape === "covered" ? "Click to peek" : "Click to cover"}
                     className="tape-overlay absolute z-20 rounded-md transition duration-300 hover:scale-[.995] cursor-pointer"
                     style={{
-                      opacity: cover === "fr" ? overlayOpacity : 0,
-                      pointerEvents: cover === "fr" ? "auto" : "none",
-                      transform: cover === "fr" ? "translateX(0)" : "translateX(-12px)",
+                      opacity: cover === leftKey ? overlayOpacity : 0,
+                      pointerEvents: cover === leftKey ? "auto" : "none",
+                      transform: cover === leftKey ? "translateX(0)" : "translateX(-12px)",
                       top: 8,
                       right: 8,
                       bottom: 8,
@@ -78,23 +85,23 @@ export default function VocabTable({
                     }}
                   >
                     <span className="sr-only">Toggle tape</span>
-                    {((cover === "fr" ? overlayOpacity : 0) as number) > 0 && (
+                    {((cover === leftKey ? overlayOpacity : 0) as number) > 0 && (
                       <EyeOff className="pointer-events-none absolute right-2 top-2 h-4 w-4 text-emerald-50/80" />
                     )}
                   </button>
                 </div>
 
-                {/* DE cell */}
+                {/* Right cell */}
                 <div className="relative px-4 py-3">
-                  <div className="relative z-10 whitespace-pre-wrap leading-relaxed">{row.de}</div>
+                  <div className="relative z-10 whitespace-pre-wrap leading-relaxed">{row[rightKey] ?? ""}</div>
                   <button
                     onClick={() => onCycleTape(idx)}
                     title={tape === "covered" ? "Click to peek" : "Click to cover"}
                     className="tape-overlay absolute z-20 rounded-md transition duration-300 hover:scale-[.995] cursor-pointer"
                     style={{
-                      opacity: cover === "de" ? overlayOpacity : 0,
-                      pointerEvents: cover === "de" ? "auto" : "none",
-                      transform: cover === "de" ? "translateX(0)" : "translateX(12px)",
+                      opacity: cover === rightKey ? overlayOpacity : 0,
+                      pointerEvents: cover === rightKey ? "auto" : "none",
+                      transform: cover === rightKey ? "translateX(0)" : "translateX(12px)",
                       top: 8,
                       right: 8,
                       bottom: 8,
@@ -108,7 +115,7 @@ export default function VocabTable({
                     }}
                   >
                     <span className="sr-only">Toggle tape</span>
-                    {((cover === "de" ? overlayOpacity : 0) as number) > 0 && (
+                    {((cover === rightKey ? overlayOpacity : 0) as number) > 0 && (
                       <EyeOff className="pointer-events-none absolute right-2 top-2 h-4 w-4 text-emerald-50/80" />
                     )}
                   </button>

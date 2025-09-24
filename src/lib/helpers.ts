@@ -20,10 +20,14 @@ export function parseVocabJson(input: string): Vocab[] {
       throw new Error(`Row ${idx + 1} is not an object`);
 
     const r = row as Record<string, unknown>;
-    if (typeof r.fr !== "string" || typeof r.de !== "string")
-      throw new Error(`Row ${idx + 1} must have 'fr' and 'de' strings`);
-
-    return { fr: r.fr, de: r.de } as Vocab;
+    const stringsOnly: Record<string, string> = {};
+    for (const [k, v] of Object.entries(r)) {
+      if (typeof v === "string") stringsOnly[k] = v;
+    }
+    const keys = Object.keys(stringsOnly);
+    if (keys.length < 2)
+      throw new Error(`Row ${idx + 1} must contain at least two string fields`);
+    return stringsOnly as Vocab;
   });
 }
 
@@ -70,7 +74,7 @@ export function sanitizeOpacity(value: number) {
 }
 
 export function isCoverColumn(value: unknown): value is CoverColumn {
-  return value === "fr" || value === "de";
+  return typeof value === "string" && value.length > 0;
 }
 
 export function isTapeColorKey(value: unknown): value is TapeColorKey {

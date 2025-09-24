@@ -57,12 +57,12 @@ export default function JsonLoaderDrawer({
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
           <p className="text-xs text-neutral-400">
-            Provide an array of objects with keys &quot;fr&quot; and &quot;de&quot;
+            Provide an array of objects with two or more string fields (e.g., en/de or fr/de). The field names are used as column labels.
           </p>
           <textarea
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
-            placeholder='[\n  { "fr": "bonjour", "de": "guten Tag" }\n]'
+            placeholder='[\n  { "en": "hello", "de": "hallo" },\n  { "fr": "bonjour", "de": "guten Tag" }\n]'
             className="min-h[12rem] flex-1 resize-y rounded-xl border border-white/10 bg-white/10 p-3 font-mono text-sm text-neutral-100 outline-none ring-emerald-500/30 transition focus:ring-2 min-h-[12rem]"
             spellCheck={false}
           />
