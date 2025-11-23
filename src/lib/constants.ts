@@ -6,6 +6,7 @@ export const LS_KEYS = {
   answers: "vocab-trainer:answers",
   cover: "vocab-trainer:cover",
   settings: "vocab-trainer:settings",
+  tapeStates: "vocab-trainer:tape-states",
 } as const;
 
 export const TAPE_COLORS: Record<

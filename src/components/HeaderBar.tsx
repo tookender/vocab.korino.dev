@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload, RotateCcw, Trash2, Settings as SettingsIcon, ArrowLeftRight } from "lucide-react";
+import { Upload, RotateCcw, Trash2, Settings as SettingsIcon } from "lucide-react";
 // no props from types needed here
 // no color constants needed here after simplification
 
@@ -9,7 +9,6 @@ type Props = {
   onClearAnswers: () => void;
   onResetAll: () => void;
   onOpenSettings: () => void;
-  onSwitchTapes: () => void;
 };
 
 export default function HeaderBar({
@@ -17,7 +16,6 @@ export default function HeaderBar({
   onClearAnswers,
   onResetAll,
   onOpenSettings,
-  onSwitchTapes,
 }: Props) {
 
   return (
@@ -25,14 +23,6 @@ export default function HeaderBar({
       <h1 className="text-2xl font-semibold tracking-tight">Vocabulary Trainer</h1>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={onSwitchTapes}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99] backdrop-blur-md"
-          title="Switch tapes between the two columns"
-        >
-          <ArrowLeftRight className="h-4 w-4" /> Switch tapes
-        </button>
-
         <button
           onClick={onOpenJson}
           className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-medium text-neutral-200 shadow-sm transition-colors duration-200 hover:bg-white/20 active:scale-[.99] backdrop-blur-md"

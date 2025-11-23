@@ -75,25 +75,31 @@ export default function Page() {
   useEffect(() => {
     try {
       const lsData = localStorage.getItem(LS_KEYS.data);
-    const lsAnswers = localStorage.getItem(LS_KEYS.answers);
-    const lsCover = localStorage.getItem(LS_KEYS.cover);
-    const lsSettings = localStorage.getItem(LS_KEYS.settings);
+      const lsAnswers = localStorage.getItem(LS_KEYS.answers);
+      const lsCover = localStorage.getItem(LS_KEYS.cover);
+      const lsSettings = localStorage.getItem(LS_KEYS.settings);
+      const lsTapeStates = localStorage.getItem(LS_KEYS.tapeStates);
 
-      if (lsData) {
-        const parsed = JSON.parse(lsData) as Vocab[];
-        setData(parsed);
-        setJsonInput(JSON.stringify(parsed, null, 2));
-        setTapeStates(initTapeStates(parsed.length));
-      } else {
-        setData([]);
-        setJsonInput("");
-        setTapeStates([]);
-      }
+      const parsedData = lsData ? (JSON.parse(lsData) as Vocab[]) : [];
+      setData(parsedData);
+      setJsonInput(lsData ? JSON.stringify(parsedData, null, 2) : "");
 
       if (lsAnswers) setAnswers(JSON.parse(lsAnswers) as Answer[]);
-      else setAnswers((lsData ? (JSON.parse(lsData) as Vocab[]) : []).map(() => null));
+      else setAnswers(parsedData.map(() => null));
 
-  if (isCoverColumn(lsCover)) setCover(lsCover);
+      const initialTapeStates = (() => {
+        if (!lsTapeStates) return initTapeStates(parsedData.length);
+        try {
+          const parsedTape = JSON.parse(lsTapeStates) as TapeState[];
+          if (parsedTape.length !== parsedData.length) return initTapeStates(parsedData.length);
+          return parsedTape.map((state) => (state === "semi" ? "semi" : "covered"));
+        } catch {
+          return initTapeStates(parsedData.length);
+        }
+      })();
+      setTapeStates(initialTapeStates);
+
+      if (isCoverColumn(lsCover)) setCover(lsCover);
 
       if (lsSettings) {
         const s = JSON.parse(lsSettings) as ReturnType<typeof getDefaultSettings> & Partial<{
@@ -125,6 +131,9 @@ export default function Page() {
   useEffect(() => {
     localStorage.setItem(LS_KEYS.cover, cover);
   }, [cover]);
+  useEffect(() => {
+    localStorage.setItem(LS_KEYS.tapeStates, JSON.stringify(tapeStates));
+  }, [tapeStates]);
 
   useEffect(() => {
     const s = {
@@ -203,6 +212,7 @@ export default function Page() {
     localStorage.removeItem(LS_KEYS.data);
     localStorage.removeItem(LS_KEYS.answers);
     localStorage.removeItem(LS_KEYS.cover);
+    localStorage.removeItem(LS_KEYS.tapeStates);
     setData([]);
     setJsonInput("");
     setAnswers([]);
@@ -225,6 +235,11 @@ export default function Page() {
     setTapeStates(data.map(() => "covered"));
   };
 
+  const onSwapColumns = () => {
+    setLeftKey(rightKey);
+    setRightKey(leftKey);
+  };
+
   const knownCount = useMemo(() => knownUnknownCounts(answers).known, [answers]);
   const unknownCount = useMemo(() => knownUnknownCounts(answers).unknown, [answers]);
 
@@ -244,7 +259,6 @@ export default function Page() {
           onClearAnswers={clearAnswers}
           onResetAll={openConfirm}
           onOpenSettings={openSettings}
-          onSwitchTapes={onSwitchTapes}
         />
 
         <StatsBar
@@ -253,6 +267,8 @@ export default function Page() {
           unknown={unknownCount}
           allCovered={allCovered}
           onToggleCoverAll={onToggleCoverAll}
+          onSwapColumns={onSwapColumns}
+          onSwitchTapes={onSwitchTapes}
         />
 
         <VocabTable
